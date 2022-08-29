@@ -2,7 +2,7 @@
 seeds = false
 skip-lint = false
 [programs.localnet]
-solana_twitter = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
+solana_twitter = "6wphNBvMTUwuwgunq79J2o7ihJVdcXmDwzskN66x9GP3"
 
 [registry]
 url = "https://api.apr.dev"
