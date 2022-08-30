@@ -1,41 +1,35 @@
 use anchor_lang::prelude::*;
 // use anchor_lang::solana_program::system_program;
 
-declare_id!("6wphNBvMTUwuwgunq79J2o7ihJVdcXmDwzskN66x9GP3");
+declare_id!("DP1BGMQdhhTE6CehdvhgQTBZe8mtA4RvmcAg8DQ6oxkd");
+
 
 #[program]
 pub mod solana_jackpot {
     use super::*;
-    pub fn initialize_bet(ctx: Context<InitializeBet>, betid: u64, bump_value: u8) -> Result<()> {
+    const VAULT_PDA_SEED: &[u8] = b"bet";
+    pub fn initialize_bet(ctx: Context<InitializeBet>, betid: u32) -> Result<()> {
         let betaccount: &mut Account<BetAccount> = &mut ctx.accounts.bet;
 
         let clock: Clock = Clock::get().unwrap();
-        let betId : u64 = betid;
+        let bet_id : u32 = betid;
         let mut vec = Vec::new();
         
-        betaccount.betid = betId;
+        betaccount.betid = bet_id;
         betaccount.betresult = None;
         betaccount.bettorlist = vec.clone();
         betaccount.timestamp = clock.unix_timestamp;
         // betaccount.betstate = BetState::Started;
-
+        let (pda, _bump_seed) = Pubkey::find_program_address(&[VAULT_PDA_SEED], ctx.program_id);
+        betaccount.vaultpda = pda;
         Ok(())
     }
 }
 
 
-
 #[derive(Accounts)]
-#[instruction(betid: u64, bump_value: u8)]
 pub struct InitializeBet<'info> {
-        // Derived PDA
-        #[account(
-            init,
-            payer = admin,
-            seeds=[b"bet".as_ref(), admin.key().as_ref(), betid.to_le_bytes().as_ref()],
-            bump,
-            space = BetAccount::LEN,
-        )]
+        #[account(init,payer = admin,space = BetAccount::LEN,)]
         bet: Account<'info, BetAccount>,
         #[account(mut)]
         admin: Signer<'info>, //need to restrict to authorized admin
@@ -67,14 +61,15 @@ pub struct InitializeBet<'info> {
 
 #[account]
 pub struct BetAccount {
-    pub betid: u64,
+    pub betid: u32,
     pub betresult: Option<u8>,
     pub bettorlist:Vec<Pubkey>,
     pub timestamp: i64,
+    pub vaultpda : Pubkey,
     // pub betstate: BetState,
 }
 
-const BET_STATE: usize = 8; //just to be safe
+// const BET_STATE: usize = 8; //just to be safe
 const BET_RESULT: usize = 8; //just to be safe
 const BET_ID_LENGTH: usize = 8;
 const DISCRIMINATOR_LENGTH: usize = 8;
@@ -87,7 +82,7 @@ impl BetAccount {
         + (PUBLIC_KEY_LENGTH * 50)// Betters.
         + TIMESTAMP_LENGTH // Timestamp.
         + BET_ID_LENGTH 
-        + BET_STATE
+        // + BET_STATE
         + BET_RESULT;
 
         
