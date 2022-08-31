@@ -13,11 +13,11 @@ pub mod solana_jackpot {
         system_instruction::{transfer , assign_with_seed, assign}
     };
 
-    pub fn initialize_bet(ctx: Context<InitializeBet>, betid: u32) -> Result<()> {
+    pub fn initialize_bet(ctx: Context<InitializeBet>, betid: u64) -> Result<()> {
         let betaccount: &mut Account<BetAccount> = &mut ctx.accounts.bet;
 
         let clock: Clock = Clock::get().unwrap();
-        let bet_id : u32 = betid;
+        let bet_id : u64 = betid;
         let mut vec = Vec::new();
         
         betaccount.bet_id = bet_id;
@@ -25,14 +25,14 @@ pub mod solana_jackpot {
         betaccount.bettor_list = vec.clone();
         betaccount.timestamp = clock.unix_timestamp;
         betaccount.vault_pda = *ctx.accounts.vault_pda_account.to_account_info().key;
-        // betaccount.betstate = BetState::Started;
-
         Ok(())
     }
 
-    pub fn place_bet(ctx: Context<PlaceBet>, betid: u32, betAmount: u64) -> Result<()> {
+    pub fn place_bet(ctx: Context<PlaceBet>, betid: u64, betAmount: u64, betPosition:u8) -> Result<()> {
         let betAccount: &mut Account<BetAccount> = &mut ctx.accounts.bet;
         let vault_pda_account: &mut Account<BetVaultAccount> = &mut ctx.accounts.vault_pda_account;
+        let bettorPendingWinAmount: &mut Account<BettorPendingWinAmount> = &mut ctx.accounts.bettorPendingWinAmount;
+        let bettorCurrentBetDetails: &mut Account<BettorCurrentBetDetails> = &mut ctx.accounts.bettorCurrentBetDetails;
 
         let transfer_instruction = &transfer(
                         &ctx.accounts.bettor.key,
@@ -47,6 +47,17 @@ pub mod solana_jackpot {
                             vault_pda_account.to_account_info(),       
                         ]
                     );
+
+        betAccount.bettor_list.push(*ctx.accounts.bettor.key);
+
+        bettorPendingWinAmount.bettorPublicKey = *ctx.accounts.bettor.key;
+        bettorPendingWinAmount.winAmount = 0;
+
+        bettorCurrentBetDetails.bettorPublicKey = *ctx.accounts.bettor.key;
+        bettorCurrentBetDetails.bet_id = betid;
+        bettorCurrentBetDetails.betAmount = betAmount;
+        bettorCurrentBetDetails.bet_position = Some(betPosition);
+        bettorCurrentBetDetails.bet_result = None;      
 
         Ok(())
     }
@@ -69,16 +80,24 @@ pub struct InitializeBet<'info> {
 
 
 #[derive(Accounts)]
+
 pub struct PlaceBet<'info> {
     #[account(mut)]
     pub bettor: Signer<'info>,
 
+    #[account(mut)]
     pub bet: Account<'info, BetAccount>,
 
     pub system_program: Program<'info, System>,
 
     #[account( mut, constraint = bet.vault_pda == *vault_pda_account.to_account_info().key)]
     pub vault_pda_account: Account<'info, BetVaultAccount>,
+
+    #[account(init,payer = bettor,seeds=[bettor.key().as_ref(),b"bettor"],bump,space = 100,)]
+    pub bettorPendingWinAmount:Account<'info, BettorPendingWinAmount>,
+
+    #[account(init,payer = bettor,seeds=[bettor.key().as_ref(),b"details"],bump,space = 200,)]
+    pub bettorCurrentBetDetails:Account<'info, BettorCurrentBetDetails>,
 }
 
 // #[derive(Accounts)]
@@ -92,26 +111,34 @@ pub struct PlaceBet<'info> {
 // }
 
 
-// pub enum BetState {
-//     Started,
-//     Closed,
-//     ResultOut,
-// }
-
 #[account]
 pub struct BetAccount {
-    pub bet_id: u32,
-    pub bet_result: Option<u8>,
+    pub bet_id: u64,
+    pub bet_result: Option<u8>, //Some(1) or Some(2) or Some(3). based on the position
     pub bettor_list:Vec<Pubkey>,
     pub timestamp: i64,
     pub vault_pda : Pubkey,
-    // pub betstate: BetState,
 }
 
 #[account]
 pub struct BetVaultAccount {}
 
-// const BET_STATE: usize = 8; //just to be safe
+#[account]
+pub struct BettorPendingWinAmount {
+    pub bettorPublicKey : Pubkey,
+    pub winAmount : u64,
+}
+
+#[account]
+pub struct BettorCurrentBetDetails {
+    pub bettorPublicKey : Pubkey,
+    pub bet_id: u64,
+    pub betAmount: u64,
+    pub bet_position: Option<u8>, //Some(1) or Some(2) or Some(3). based on the position
+    pub bet_result: Option<u8>, //Some(1) or Some(2) or Some(3). based on the position
+}
+
+
 const BET_RESULT: usize = 8; //just to be safe
 const BET_ID_LENGTH: usize = 8;
 const DISCRIMINATOR_LENGTH: usize = 8;
@@ -124,9 +151,7 @@ impl BetAccount {
         + (PUBLIC_KEY_LENGTH * 50)// Betters.
         + TIMESTAMP_LENGTH // Timestamp.
         + BET_ID_LENGTH 
-        // + BET_STATE
         + BET_RESULT;
-
 }
 
 #[error_code]
