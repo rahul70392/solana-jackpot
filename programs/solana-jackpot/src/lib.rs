@@ -1,5 +1,3 @@
-// use anchor_lang::prelude::*;
-// use anchor_lang::solana_program::system_program;
 use anchor_lang::{prelude::*, solana_program::system_program};
 
 declare_id!("DP1BGMQdhhTE6CehdvhgQTBZe8mtA4RvmcAg8DQ6oxkd");
@@ -41,7 +39,7 @@ pub mod solana_jackpot {
                         &vault_pda_account.to_account_info().key,
                         betAmount,
                     );
-                    msg!("Paying in {}", betAmount);
+                    msg!("betting with {} lamports", betAmount);
                     invoke(
                         transfer_instruction,
                         &[
@@ -57,11 +55,7 @@ pub mod solana_jackpot {
 
 #[derive(Accounts)]
 pub struct InitializeBet<'info> {
-        #[account(init,
-            payer = admin,
-            seeds=[admin.key().as_ref()],
-            bump,
-            space = BetAccount::LEN,)]
+        #[account(init,payer = admin,seeds=[b"seed"],bump,space = BetAccount::LEN,)]
         pub bet: Account<'info, BetAccount>,
 
         #[account(mut)]
@@ -69,11 +63,7 @@ pub struct InitializeBet<'info> {
 
         pub system_program: Program<'info, System>,
 
-        #[account(init,
-        payer = admin,
-        seeds=[b"escrow"],
-        bump,
-        space = BetAccount::LEN,)]
+        #[account(init,payer = admin,seeds=[b"escrow"],bump,space = BetAccount::LEN,)]
         pub vault_pda_account: Account<'info, BetVaultAccount>,
 }
 
@@ -137,7 +127,6 @@ impl BetAccount {
         // + BET_STATE
         + BET_RESULT;
 
-        
 }
 
 #[error_code]
