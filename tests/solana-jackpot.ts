@@ -13,7 +13,10 @@ const program = anchor.workspace.SolanaJackpot as Program<SolanaJackpot>;
 it('can initialize a new bet', async () => {
 
     let betId  = numberToBN('1');
-    const [betPda, betBump] = await PublicKey.findProgramAddress([Buffer.from('seed')], program.programId);
+    //every bet is identified as unique, only by its betPda account. So unique seeds need to be sent for each bet.
+    //Like "seed1" will generate a unique pda, then "seed2", "seed3" and so on.
+    //similarly vaultpda is also unique for each bet, and needs to change with every bet.
+    const [betPda, betBump] = await PublicKey.findProgramAddress([Buffer.from('seed1')], program.programId);
     const [vaultPda, vaultBump] = await PublicKey.findProgramAddress([Buffer.from('escrow')], program.programId);
 
     const _admin = program.provider.publicKey;
@@ -64,6 +67,8 @@ it('can place a new bet', async () => {
         
 
         const bet1 = await program.account.bettorCurrentBetDetails.fetch(bettorCurrentBetDetailsPda);
-        // console.log("bettorCurrentBetDetailsPda Account details after bet creation", bet1 );
-        console.log("vaultFinalBal-vaultInitialBal",bet1.betAmount.toNumber());
+        console.log("bettorCurrentBetDetailsPda Account details after bet creation", bet1 );
+
+        const betAccount = await program.account.betAccount.fetch(betPda);
+        console.log("BetAccountDEtails-------------",betAccount);
     });

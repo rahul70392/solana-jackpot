@@ -1,5 +1,4 @@
-use anchor_lang::{prelude::*, solana_program::system_program};
-
+use anchor_lang::{prelude::*};
 declare_id!("DP1BGMQdhhTE6CehdvhgQTBZe8mtA4RvmcAg8DQ6oxkd");
 
 
@@ -8,65 +7,119 @@ pub mod solana_jackpot {
     use super::*;
 
         use anchor_lang::solana_program::{
-        lamports,
-        program::{invoke, invoke_signed},
-        system_instruction::{transfer , assign_with_seed, assign}
+        program::{invoke},
+        system_instruction::{transfer},
     };
 
     pub fn initialize_bet(ctx: Context<InitializeBet>, betid: u64) -> Result<()> {
-        let betaccount: &mut Account<BetAccount> = &mut ctx.accounts.bet;
+        let bet_account: &mut Account<BetAccount> = &mut ctx.accounts.bet;
 
         let clock: Clock = Clock::get().unwrap();
         let bet_id : u64 = betid;
-        let mut vec = Vec::new();
-        
-        betaccount.bet_id = bet_id;
-        betaccount.bet_result = None;
-        betaccount.bettor_list = vec.clone();
-        betaccount.timestamp = clock.unix_timestamp;
-        betaccount.vault_pda = *ctx.accounts.vault_pda_account.to_account_info().key;
+        let vec1 = Vec::new();
+        let vec2 = Vec::new();
+        let vec3 = Vec::new();
+
+        bet_account.bet_id = bet_id;
+        bet_account.bet_result = None;
+        bet_account.bettor_list = vec1.clone();
+        bet_account.bettor_list_amount = vec2.clone();
+        bet_account.bettor_guess = vec3.clone();
+        bet_account.timestamp = clock.unix_timestamp;
+        bet_account.vault_pda = *ctx.accounts.vault_pda_account.to_account_info().key;
+        bet_account.total_bet_amount = 0;
+        bet_account.active_status = true;
         Ok(())
     }
 
-    pub fn place_bet(ctx: Context<PlaceBet>, betid: u64, betAmount: u64, betPosition:u8) -> Result<()> {
-        let betAccount: &mut Account<BetAccount> = &mut ctx.accounts.bet;
+    pub fn place_bet(ctx: Context<PlaceBet>, bet_amount: u64, bet_position:u8) -> Result<()> {
+        let bet_account: &mut Account<BetAccount> = &mut ctx.accounts.bet;
         let vault_pda_account: &mut Account<BetVaultAccount> = &mut ctx.accounts.vault_pda_account;
-        let bettorPendingWinAmount: &mut Account<BettorPendingWinAmount> = &mut ctx.accounts.bettorPendingWinAmount;
-        let bettorCurrentBetDetails: &mut Account<BettorCurrentBetDetails> = &mut ctx.accounts.bettorCurrentBetDetails;
 
         let transfer_instruction = &transfer(
                         &ctx.accounts.bettor.key,
                         &vault_pda_account.to_account_info().key,
-                        betAmount,
+                        bet_amount,
                     );
-                    msg!("betting with {} lamports", betAmount);
+                    msg!("betting with {} lamports", bet_amount);
                     invoke(
                         transfer_instruction,
                         &[
                             ctx.accounts.bettor.to_account_info(),
                             vault_pda_account.to_account_info(),       
                         ]
-                    );
+                    )?;
 
-        betAccount.bettor_list.push(*ctx.accounts.bettor.key);
-
-        bettorPendingWinAmount.bettorPublicKey = *ctx.accounts.bettor.key;
-        bettorPendingWinAmount.winAmount = 0;
-
-        bettorCurrentBetDetails.bettorPublicKey = *ctx.accounts.bettor.key;
-        bettorCurrentBetDetails.bet_id = betid;
-        bettorCurrentBetDetails.betAmount = betAmount;
-        bettorCurrentBetDetails.bet_position = Some(betPosition);
-        bettorCurrentBetDetails.bet_result = None;      
-
+        bet_account.bettor_list.push(*ctx.accounts.bettor.key);
+        bet_account.bettor_list_amount.push(bet_amount);
+        bet_account.bettor_guess.push(Some(bet_position));
+        bet_account.total_bet_amount = bet_account.total_bet_amount + bet_amount;
+ 
         Ok(())
     }
+
+    pub fn declare_result(ctx: Context<PlaceBet>) -> Result<()> {
+        let bet_account: &mut Account<BetAccount> = &mut ctx.accounts.bet;
+        // let vault_pda_account: &mut Account<BetVaultAccount> = &mut ctx.accounts.vault_pda_account;
+
+        //TBD-//Need to generate result randomly in a provably fair way and then distribute the prize
+        bet_account.bet_result = Some(3);
+        let res_temp:Option<u8> = Some(3);
+        let mut total_amount_bet = 0;
+
+        //iterare to calculate the total amount bet on the correct result, i.e. total bet by the winners
+        for (i, x) in bet_account.bettor_guess.iter().enumerate() {
+                if *x == res_temp
+                {
+                    total_amount_bet =  total_amount_bet + bet_account.bettor_list_amount[i];
+                }
+            }
+
+        bet_account.total_amount_bet_on_correct = total_amount_bet;
+        
+        Ok(())
+    }
+
+    pub fn claim_rewards(ctx: Context<ClaimRewards>) -> Result<()> {
+        let bet_account: &mut Account<BetAccount> = &mut ctx.accounts.bet;
+        let vault_pda_account: &mut Account<BetVaultAccount> = &mut ctx.accounts.vault_pda_account;
+        let key_bettor = *ctx.accounts.bettor.key;
+
+        //iterare to calculate the total amount bet on the correct result, i.e. total bet by the winners
+        for (i, x) in bet_account.bettor_list.iter().enumerate() {
+            if *x == key_bettor
+            {
+                    if bet_account.bettor_guess[i] == bet_account.bet_result
+                    {
+                        let reward_amount : u64 = (bet_account.bettor_list_amount[i] * bet_account.total_bet_amount)/ bet_account.total_amount_bet_on_correct ;
+
+                        let transfer_instruction = &transfer(
+                            &vault_pda_account.to_account_info().key,
+                            &ctx.accounts.bettor.key,
+                            reward_amount,
+                        );
+                        msg!("Reward Claim by {} for {} lamports",ctx.accounts.bettor.key, reward_amount);
+                        invoke(
+                            transfer_instruction,
+                            &[
+                                ctx.accounts.bettor.to_account_info(),
+                                vault_pda_account.to_account_info(),       
+                            ]
+                        )?;
+                    }
+                }
+        }
+        
+        Ok(())
+    }
+
+
 }
 
-
+//TBD onlyAdmin can call- need to restrict
 #[derive(Accounts)]
 pub struct InitializeBet<'info> {
-        #[account(init,payer = admin,seeds=[b"seed"],bump,space = BetAccount::LEN,)]
+        #[account(init,payer = admin,seeds=[b"seed"],bump,space = 1500,)]
         pub bet: Account<'info, BetAccount>,
 
         #[account(mut)]
@@ -74,13 +127,12 @@ pub struct InitializeBet<'info> {
 
         pub system_program: Program<'info, System>,
 
-        #[account(init,payer = admin,seeds=[b"escrow"],bump,space = BetAccount::LEN,)]
+        #[account(init,payer = admin,seeds=[b"escrow"],bump,space = 1500,)]
         pub vault_pda_account: Account<'info, BetVaultAccount>,
 }
 
-
+//public function
 #[derive(Accounts)]
-
 pub struct PlaceBet<'info> {
     #[account(mut)]
     pub bettor: Signer<'info>,
@@ -90,69 +142,93 @@ pub struct PlaceBet<'info> {
 
     pub system_program: Program<'info, System>,
 
-    #[account( mut, constraint = bet.vault_pda == *vault_pda_account.to_account_info().key)]
+    #[account(mut, constraint = bet.vault_pda == *vault_pda_account.to_account_info().key)]
     pub vault_pda_account: Account<'info, BetVaultAccount>,
 
-    #[account(init,payer = bettor,seeds=[bettor.key().as_ref(),b"bettor"],bump,space = 100,)]
-    pub bettorPendingWinAmount:Account<'info, BettorPendingWinAmount>,
-
-    #[account(init,payer = bettor,seeds=[bettor.key().as_ref(),b"details"],bump,space = 200,)]
-    pub bettorCurrentBetDetails:Account<'info, BettorCurrentBetDetails>,
+    // #[account(init_if_needed,payer = bettor,seeds=[bettor.key().as_ref(),b"details"],bump,space = 200,)]
+    // pub bettor_current_bet_details:Account<'info, BettorWinAmount>,
 }
 
-// #[derive(Accounts)]
-// pub struct DeclareResult<'info> {
 
+//TBD onlyAdmin can call- need to restrict
+#[derive(Accounts)]
+pub struct DeclareResult<'info> {
+    #[account(mut)]
+    pub admin: Signer<'info>,
+
+    #[account(mut)]
+    pub bet: Account<'info, BetAccount>,
+
+    pub system_program: Program<'info, System>,
+
+    #[account(mut, constraint = bet.vault_pda == *vault_pda_account.to_account_info().key)]
+    pub vault_pda_account: Account<'info, BetVaultAccount>,
+
+}
+
+//public function
+#[derive(Accounts)]
+    pub struct ClaimRewards<'info> {
+    #[account(mut)]
+    pub bettor: Signer<'info>,
+
+    #[account(mut)]
+    pub bet: Account<'info, BetAccount>,
+
+    pub system_program: Program<'info, System>,
+
+    #[account(mut, constraint = bet.vault_pda == *vault_pda_account.to_account_info().key)]
+    pub vault_pda_account: Account<'info, BetVaultAccount>,
+}
+
+//stores the win amount fromm where the winners can claim
+// #[account]
+// pub struct platformGlobalDetails {
+//     pub platform_vault: u64,
 // }
 
-// #[derive(Accounts)]
-// pub struct ClaimWinnings<'info> {
 
-// }
-
-
+//Stores all the current bet details
 #[account]
 pub struct BetAccount {
     pub bet_id: u64,
     pub bet_result: Option<u8>, //Some(1) or Some(2) or Some(3). based on the position
+    pub bettor_guess : Vec<Option<u8>>,
     pub bettor_list:Vec<Pubkey>,
+    pub bettor_list_amount:Vec<u64>,
     pub timestamp: i64,
     pub vault_pda : Pubkey,
+    pub total_bet_amount : u64,
+    pub total_amount_bet_on_correct :u64,
+    pub active_status : bool,
 }
 
+//stores all the current bet money
 #[account]
 pub struct BetVaultAccount {}
 
-#[account]
-pub struct BettorPendingWinAmount {
-    pub bettorPublicKey : Pubkey,
-    pub winAmount : u64,
-}
+//stores Bettor's win amount which he can claim anytime
+// #[account]
+// pub struct ClaimRewards {
 
-#[account]
-pub struct BettorCurrentBetDetails {
-    pub bettorPublicKey : Pubkey,
-    pub bet_id: u64,
-    pub betAmount: u64,
-    pub bet_position: Option<u8>, //Some(1) or Some(2) or Some(3). based on the position
-    pub bet_result: Option<u8>, //Some(1) or Some(2) or Some(3). based on the position
-}
+    
+// }
 
 
-const BET_RESULT: usize = 8; //just to be safe
-const BET_ID_LENGTH: usize = 8;
-const DISCRIMINATOR_LENGTH: usize = 8;
-const PUBLIC_KEY_LENGTH: usize = 32;
-const TIMESTAMP_LENGTH: usize = 8;
+// const BET_RESULT: usize = 8; //just to be safe
+// const BET_ID_LENGTH: usize = 8;
+// const DISCRIMINATOR_LENGTH: usize = 8;
+// const PUBLIC_KEY_LENGTH: usize = 32;
+// const TIMESTAMP_LENGTH: usize = 8;
 
 
-impl BetAccount {
-    const LEN: usize = DISCRIMINATOR_LENGTH
-        + (PUBLIC_KEY_LENGTH * 50)// Betters.
-        + TIMESTAMP_LENGTH // Timestamp.
-        + BET_ID_LENGTH 
-        + BET_RESULT;
-}
+// impl BetAccount {
+//     const LEN: usize = DISCRIMINATOR_LENGTH
+//         + (PUBLIC_KEY_LENGTH * 100)// Betters.
+//         + TIMESTAMP_LENGTH // Timestamp.
+//         + BET_ID_LENGTH 
+//         + BET_RESULT;
+// }
 
 #[error_code]
 pub enum ErrorCode {
@@ -161,136 +237,3 @@ pub enum ErrorCode {
     #[msg("Invalid Bet")]
     InvalidBet,
 }
-
-
-
-// use anchor_lang::{prelude::*, solana_program::system_program};
-
-// declare_id!("E41ZWCPjxsHmAv6DhUdfduj8W2bt7VCnq4RiypAL1RYc");
-
-// #[program]
-// pub mod lock {
-    // use anchor_lang::solana_program::{
-    //     lamports,
-    //     program::{invoke, invoke_signed},
-    //     system_instruction::{transfer , assign_with_seed, assign}
-    // };
-
-//     use super::*;
-//     pub fn initialize(ctx: Context<Initialize>, bump: u8, escrow_bump: u8, authority: Pubkey) -> Result<()> {
-//         let lock_account = &mut ctx.accounts.lock_account;
-//         //let tx  = &assign(lock_account.to_account_info().key, ctx.accounts.owner.to_account_info().key);
-//         lock_account.authority = authority;
-//         lock_account.owner = *ctx.accounts.owner.key;
-//         lock_account.locked = true;
-//         lock_account.bump = bump;
-//         lock_account.escrow_bump = escrow_bump;
-//         lock_account.escrow_pda = *ctx.accounts.lock_escrow_account.to_account_info().key;
-//         Ok(())
-//     }
-//     pub fn unlock(ctx: Context<Unlock>) -> Result<()> {
-//         let lock_account = &mut ctx.accounts.lock_account;
-//         lock_account.locked = false;
-//         Ok(())
-//     }
-//     pub fn lock(ctx: Context<Unlock>) -> Result<()> {
-//         let lock_account = &mut ctx.accounts.lock_account;
-//         lock_account.locked = true;
-//         Ok(())
-//     }
-//     pub fn withdraw(ctx: Context<Withdraw>, lamports: u64) -> Result<()> {
-//         let lock_account = &mut ctx.accounts.lock_account;
-//         let lock_escrow_account = &mut ctx.accounts.lock_escrow_account;
-
-//         **lock_escrow_account.to_account_info().try_borrow_mut_lamports()? -= lamports;
-//         **ctx.accounts.owner.to_account_info().try_borrow_mut_lamports()? += lamports;
-//         Ok(())
-//     }
-
-//     pub fn payin(ctx: Context<Payin>, lamports: u64) -> Result<()> {
-//         let lock_account = &mut ctx.accounts.lock_account;
-//         let lock_escrow_account = &mut ctx.accounts.lock_escrow_account;
-//         let transfer_instruction = &transfer(
-//             &lock_account.owner,
-//             &lock_escrow_account.to_account_info().key,
-//             lamports,
-//         );
-//         msg!("Paying in {}", lamports);
-//         invoke(
-//             transfer_instruction,
-//             &[
-//                 ctx.accounts.owner.to_account_info(),
-//                 lock_escrow_account.to_account_info(),       
-//             ]
-//         );
-//         Ok(())
-//     }
-// }
-
-// #[derive(Accounts)]
-// #[instruction(bump: u8, escrow_bump: u8)]
-// pub struct Initialize<'info> {
-    // #[account(init,
-    // payer=owner,
-    // space=8 + 32 + 32 + 1 + 1 + 1 + 32 ,
-    // seeds=[owner.key().as_ref()],
-    // bump)
-    // ]
-//     pub lock_account: Account<'info, LockAccount>,
-//     #[account(mut)]
-//     pub owner: Signer<'info>,
-//     pub system_program: Program<'info, System>,
-//     #[account(init,
-//         payer=owner,
-//         space=8,
-//         seeds=[owner.key().as_ref(),b"escrow"],
-//         bump)
-//         ]
-//     pub lock_escrow_account: Account<'info, LockEscrowAccount>,
-// }
-
-// #[derive(Accounts)]
-// pub struct Unlock<'info> {
-//     #[account(mut, has_one = authority)]
-//     pub lock_account: Account<'info, LockAccount>,
-//     #[account(signer)]
-//     pub authority: AccountInfo<'info>,
-// }
-
-// #[derive(Accounts)]
-// pub struct Withdraw<'info> {
-//     #[account(mut,has_one=owner, constraint = !lock_account.locked, close=owner)]
-//     pub lock_account: Account<'info, LockAccount>,
-//     #[account(mut, signer)]
-//     pub owner: AccountInfo<'info>,
-//     pub system_program: Program<'info, System>,
-//     #[account( mut, constraint = lock_account.escrow_pda == *lock_escrow_account.to_account_info().key)]
-//     //#[account( mut)]
-//     pub lock_escrow_account: Account<'info, LockEscrowAccount>
-// }
-
-// #[derive(Accounts)]
-// pub struct Payin<'info> {
-//     #[account(has_one = owner)]
-//     pub lock_account: Account<'info, LockAccount>,
-//     #[account(signer)]
-//     pub owner: AccountInfo<'info>,
-//     pub system_program: Program<'info, System>,
-//     #[account( mut, constraint = lock_account.escrow_pda == *lock_escrow_account.to_account_info().key)]
-//     pub lock_escrow_account: Account<'info, LockEscrowAccount>
-// }
-
-
-// #[account]
-// pub struct LockAccount {
-//     pub owner: Pubkey,
-//     pub authority: Pubkey,
-//     pub locked: bool,
-//     pub bump: u8,
-//     pub escrow_bump: u8,
-//     pub escrow_pda: Pubkey
-// }
-
-
-// #[account]
-// pub struct LockEscrowAccount {}
