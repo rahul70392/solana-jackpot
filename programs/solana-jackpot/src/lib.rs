@@ -29,6 +29,7 @@ pub mod solana_jackpot {
         bet_account.vault_pda = *ctx.accounts.vault_pda_account.to_account_info().key;
         bet_account.total_bet_amount = 0;
         bet_account.active_status = true;
+        bet_account.total_amount_bet_on_correct = 0;
         Ok(())
     }
 
@@ -58,13 +59,13 @@ pub mod solana_jackpot {
         Ok(())
     }
 
-    pub fn declare_result(ctx: Context<PlaceBet>) -> Result<()> {
+    pub fn declare_result(ctx: Context<DeclareResult>) -> Result<()> {
         let bet_account: &mut Account<BetAccount> = &mut ctx.accounts.bet;
         // let vault_pda_account: &mut Account<BetVaultAccount> = &mut ctx.accounts.vault_pda_account;
 
         //TBD-//Need to generate result randomly in a provably fair way and then distribute the prize
-        bet_account.bet_result = Some(3);
-        let res_temp:Option<u8> = Some(3);
+        bet_account.bet_result = Some(1);
+        let res_temp:Option<u8> = Some(1);
         let mut total_amount_bet = 0;
 
         //iterare to calculate the total amount bet on the correct result, i.e. total bet by the winners
@@ -89,31 +90,21 @@ pub mod solana_jackpot {
         for (i, x) in bet_account.bettor_list.iter().enumerate() {
             if *x == key_bettor
             {
-                    if bet_account.bettor_guess[i] == bet_account.bet_result
+                if bet_account.bettor_guess[i] == bet_account.bet_result
                     {
                         let reward_amount : u64 = (bet_account.bettor_list_amount[i] * bet_account.total_bet_amount)/ bet_account.total_amount_bet_on_correct ;
 
-                        let transfer_instruction = &transfer(
-                            &vault_pda_account.to_account_info().key,
-                            &ctx.accounts.bettor.key,
-                            reward_amount,
-                        );
-                        msg!("Reward Claim by {} for {} lamports",ctx.accounts.bettor.key, reward_amount);
-                        invoke(
-                            transfer_instruction,
-                            &[
-                                ctx.accounts.bettor.to_account_info(),
-                                vault_pda_account.to_account_info(),       
-                            ]
-                        )?;
-                    }
+                        if **(&vault_pda_account.to_account_info()).try_borrow_lamports()? < reward_amount {
+                            // return Err();
+                        }
+                        **(&vault_pda_account.to_account_info()).try_borrow_mut_lamports()? -= reward_amount;
+                        **ctx.accounts.bettor.try_borrow_mut_lamports()? += reward_amount;
                 }
+            }
         }
         
         Ok(())
     }
-
-
 }
 
 //TBD onlyAdmin can call- need to restrict
@@ -145,24 +136,19 @@ pub struct PlaceBet<'info> {
     #[account(mut, constraint = bet.vault_pda == *vault_pda_account.to_account_info().key)]
     pub vault_pda_account: Account<'info, BetVaultAccount>,
 
-    // #[account(init_if_needed,payer = bettor,seeds=[bettor.key().as_ref(),b"details"],bump,space = 200,)]
-    // pub bettor_current_bet_details:Account<'info, BettorWinAmount>,
 }
 
 
 //TBD onlyAdmin can call- need to restrict
 #[derive(Accounts)]
 pub struct DeclareResult<'info> {
-    #[account(mut)]
+    // #[account(mut)]
     pub admin: Signer<'info>,
 
     #[account(mut)]
     pub bet: Account<'info, BetAccount>,
 
     pub system_program: Program<'info, System>,
-
-    #[account(mut, constraint = bet.vault_pda == *vault_pda_account.to_account_info().key)]
-    pub vault_pda_account: Account<'info, BetVaultAccount>,
 
 }
 
@@ -180,12 +166,6 @@ pub struct DeclareResult<'info> {
     #[account(mut, constraint = bet.vault_pda == *vault_pda_account.to_account_info().key)]
     pub vault_pda_account: Account<'info, BetVaultAccount>,
 }
-
-//stores the win amount fromm where the winners can claim
-// #[account]
-// pub struct platformGlobalDetails {
-//     pub platform_vault: u64,
-// }
 
 
 //Stores all the current bet details
@@ -207,12 +187,6 @@ pub struct BetAccount {
 #[account]
 pub struct BetVaultAccount {}
 
-//stores Bettor's win amount which he can claim anytime
-// #[account]
-// pub struct ClaimRewards {
-
-    
-// }
 
 
 // const BET_RESULT: usize = 8; //just to be safe
