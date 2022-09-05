@@ -16,13 +16,13 @@ it('admin can initialize a new bet', async () => {
     //every bet is identified as unique, only by its betPda account. So unique seeds need to be sent for each bet.
     //Like "seed1" will generate a unique pda, then "seed2", "seed3" and so on.
     //similarly vaultpda is also unique for each bet, and needs to change with every bet.
-    const [betPda, betBump] = await PublicKey.findProgramAddress([Buffer.from('seed')], program.programId);
-    const [vaultPda, vaultBump] = await PublicKey.findProgramAddress([Buffer.from('escrow')], program.programId);
-
-    const vaultInitialBal = await program.provider.connection.getBalance(vaultPda);
-    console.log("current bet vault initial balance in first test-------->",vaultInitialBal);
+    const [betPda, betBump] = await PublicKey.findProgramAddress([Buffer.from('seed3')], program.programId);
+    const [vaultPda, vaultBump] = await PublicKey.findProgramAddress([Buffer.from('escrow3')], program.programId);
 
     const _admin = program.provider.publicKey;
+
+    const _adminbal = await program.provider.connection.getBalance(_admin);
+    console.log("_adminbalance",_adminbal);
 
         await program.rpc.initializeBet(betId, {
             accounts: {
@@ -34,8 +34,6 @@ it('admin can initialize a new bet', async () => {
             signers: [],
         });
 
-        const vaultfinalBal = await program.provider.connection.getBalance(vaultPda);
-        console.log("current bet vault final balance after first test-------->",vaultfinalBal);
     });
 
 
@@ -46,13 +44,9 @@ it('can place a new bet', async () => {
     // let betId  = numberToBN('1');
     let betAmount = numberToBN('2000000000');
     let betPosition = numberToBN('1');
-    const [betPda, betBump] = await PublicKey.findProgramAddress([Buffer.from('seed')], program.programId);
-    const [vaultPda, vaultBump] = await PublicKey.findProgramAddress([Buffer.from('escrow')], program.programId);
-    // const [bettorPendingWinAmountPda, bettorPendingWinAmountBump] = await PublicKey.findProgramAddress([program.provider.publicKey.toBuffer(),Buffer.from('bettor')], program.programId);
-    // const [bettorCurrentBetDetailsPda, bettorCurrentBetDetailsBump] = await PublicKey.findProgramAddress([program.provider.publicKey.toBuffer(),Buffer.from('details')], program.programId);
-
+    const [betPda, betBump] = await PublicKey.findProgramAddress([Buffer.from('seed3')], program.programId);
+    const [vaultPda, vaultBump] = await PublicKey.findProgramAddress([Buffer.from('escrow3')], program.programId);
     const vaultInitialBal = await program.provider.connection.getBalance(vaultPda);
-    console.log("current bet vault initial balance in 2nd test-------->",vaultInitialBal);
 
         await program.rpc.placeBet( betAmount, betPosition, {
             accounts: {
@@ -69,21 +63,16 @@ it('can place a new bet', async () => {
     });
 
 
-    //third test - place bet from 3 different users
-it('can place a bets from 3 different users, different bet amounts and bet positions', async () => {
+    //third test - place bet from 2 different users
+it('can place a bets from 2 different users, different bet amounts and bet positions', async () => {
 
 
     // let betId  = numberToBN('1');
     let betAmount1 = numberToBN('1000000000');
     let betPosition1 = numberToBN('1');
-    const [betPda, betBump] = await PublicKey.findProgramAddress([Buffer.from('seed')], program.programId);
-    const [vaultPda, vaultBump] = await PublicKey.findProgramAddress([Buffer.from('escrow')], program.programId);
-    // const [bettorPendingWinAmountPda, bettorPendingWinAmountBump] = await PublicKey.findProgramAddress([program.provider.publicKey.toBuffer(),Buffer.from('bettor')], program.programId);
-    // const [bettorCurrentBetDetailsPda, bettorCurrentBetDetailsBump] = await PublicKey.findProgramAddress([program.provider.publicKey.toBuffer(),Buffer.from('details')], program.programId);
-
-    const vaultInitialBal = await program.provider.connection.getBalance(vaultPda);
-    console.log("current bet vault initial balance in 3rd test-------->",vaultInitialBal);
-
+    const [betPda, betBump] = await PublicKey.findProgramAddress([Buffer.from('seed3')], program.programId);
+    const [vaultPda, vaultBump] = await PublicKey.findProgramAddress([Buffer.from('escrow3')], program.programId);
+ 
         await program.rpc.placeBet( betAmount1, betPosition1, {
             accounts: {
                 bettor: program.provider.publicKey,
@@ -95,18 +84,15 @@ it('can place a bets from 3 different users, different bet amounts and bet posit
         });
         
         const User2 = anchor.web3.Keypair.generate();
-        const signature = await program.provider.connection.requestAirdrop(User2.publicKey, 10000000000);
+        console.log("User2---->", User2.publicKey);
+        const signature = await program.provider.connection.requestAirdrop(User2.publicKey, 1000000000);
         await program.provider.connection.confirmTransaction(signature);
+        const User2Balance = await program.provider.connection.getBalance(User2.publicKey);
+        console.log("User2Balance",User2Balance);
 
-        const User3 = anchor.web3.Keypair.generate();
-        const signature2 = await program.provider.connection.requestAirdrop(User3.publicKey, 10000000000);
-        await program.provider.connection.confirmTransaction(signature2);
-
-        let betAmount2 = numberToBN('2000000000');
+        let betAmount2 = numberToBN('500000000');
         let betPosition2 = numberToBN('2');
 
-        let betAmount3 = numberToBN('3000000000');
-        let betPosition3 = numberToBN('3');
 
         await program.rpc.placeBet( betAmount2, betPosition2, {
             accounts: {
@@ -118,18 +104,6 @@ it('can place a bets from 3 different users, different bet amounts and bet posit
             signers: [User2],
         });
 
-        await program.rpc.placeBet( betAmount3, betPosition3, {
-            accounts: {
-                bettor: User3.publicKey,
-                bet: betPda,
-                systemProgram: anchor.web3.SystemProgram.programId,
-                vaultPdaAccount: vaultPda,
-            },
-            signers: [User3],
-        });
-
-
-
         const vaultFinalBal = await program.provider.connection.getBalance(vaultPda);
         console.log("vault final balance after 3rd test-------->",vaultFinalBal);
     });
@@ -137,12 +111,7 @@ it('can place a bets from 3 different users, different bet amounts and bet posit
     //fourth test - declare result 
 it('admin can declare result', async () => {
 
-    // let betId  = numberToBN('1');
-    // let betAmount = numberToBN('2000000000');
-    // let betPosition = numberToBN('1');
-    const [betPda, betBump] = await PublicKey.findProgramAddress([Buffer.from('seed')], program.programId);
-
-
+    const [betPda, betBump] = await PublicKey.findProgramAddress([Buffer.from('seed3')], program.programId);
 
         await program.rpc.declareResult({
             accounts: {
@@ -158,14 +127,12 @@ it('admin can declare result', async () => {
 
     });
 
-    //second test - place bet
+    //fifth test - claim bet rewards
 it('can claim rewards', async () => {
 
-    const [betPda, betBump] = await PublicKey.findProgramAddress([Buffer.from('seed')], program.programId);
-    const [vaultPda, vaultBump] = await PublicKey.findProgramAddress([Buffer.from('escrow')], program.programId);
-    // const [bettorPendingWinAmountPda, bettorPendingWinAmountBump] = await PublicKey.findProgramAddress([program.provider.publicKey.toBuffer(),Buffer.from('bettor')], program.programId);
-    // const [bettorCurrentBetDetailsPda, bettorCurrentBetDetailsBump] = await PublicKey.findProgramAddress([program.provider.publicKey.toBuffer(),Buffer.from('details')], program.programId);
-
+    const [betPda, betBump] = await PublicKey.findProgramAddress([Buffer.from('seed3')], program.programId);
+    const [vaultPda, vaultBump] = await PublicKey.findProgramAddress([Buffer.from('escrow3')], program.programId);
+ 
     const vaultInitialBal = await program.provider.connection.getBalance(vaultPda);
     console.log("current bet vault initial balance in 2nd test-------->",vaultInitialBal);
 

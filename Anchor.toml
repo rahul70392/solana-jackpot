@@ -8,7 +8,7 @@ solana_jackpot = "DP1BGMQdhhTE6CehdvhgQTBZe8mtA4RvmcAg8DQ6oxkd"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "/Users/rahul703/.config/solana/id.json"
 
 [scripts]

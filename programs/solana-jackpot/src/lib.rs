@@ -61,7 +61,7 @@ pub mod solana_jackpot {
 
     pub fn declare_result(ctx: Context<DeclareResult>) -> Result<()> {
         let bet_account: &mut Account<BetAccount> = &mut ctx.accounts.bet;
-        // let vault_pda_account: &mut Account<BetVaultAccount> = &mut ctx.accounts.vault_pda_account;
+
 
         //TBD-//Need to generate result randomly in a provably fair way and then distribute the prize
         bet_account.bet_result = Some(1);
@@ -110,7 +110,7 @@ pub mod solana_jackpot {
 //TBD onlyAdmin can call- need to restrict
 #[derive(Accounts)]
 pub struct InitializeBet<'info> {
-        #[account(init,payer = admin,seeds=[b"seed"],bump,space = 1500,)]
+        #[account(init,payer = admin,seeds=[b"seed3"],bump,space = 1500,)]
         pub bet: Account<'info, BetAccount>,
 
         #[account(mut)]
@@ -118,7 +118,7 @@ pub struct InitializeBet<'info> {
 
         pub system_program: Program<'info, System>,
 
-        #[account(init,payer = admin,seeds=[b"escrow"],bump,space = 1500,)]
+        #[account(init,payer = admin,seeds=[b"escrow3"],bump,space = 1500,)]
         pub vault_pda_account: Account<'info, BetVaultAccount>,
 }
 
