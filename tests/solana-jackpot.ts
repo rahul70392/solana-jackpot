@@ -4,10 +4,15 @@ import { SolanaJackpot } from "../target/types/solana_jackpot";
 const numberToBN = require('number-to-bn');
 const { PublicKey } = anchor.web3;
 import * as assert from "assert";
-
-
 anchor.setProvider(anchor.AnchorProvider.env());
 const program = anchor.workspace.SolanaJackpot as Program<SolanaJackpot>;
+
+//import switchboard stuff
+import {
+    loadSwitchboardProgram,
+    VrfAccount,
+  } from "@switchboard-xyz/switchboard-v2";
+
 
 //First test - initialize
 it('admin can initialize a new bet', async () => {
@@ -150,3 +155,21 @@ it('can claim rewards', async () => {
         // assert.equal((vaultFinalBal-vaultInitialBal), betAmount);
         console.log("vault final balance after 5th test i.e. claim rewards",vaultFinalBal);
     });
+
+
+        //sixth test - test swictboard vrf
+// it('can claim rewards', async () => {
+
+//     const User2 = anchor.web3.Keypair.generate();
+//     //   let payer: program.provider.publicKey;
+//       const programvrf = await loadSwitchboardProgram("devnet", undefined, User2);
+      
+//       const vrfAccount = new VrfAccount({
+//         programvrf,
+//         publicKey: vrfKey,
+//       });
+//       const vrf = await vrfAccount.loadData();
+//       console.log("vrf data",vrf.currentRound.result);
+
+//     });
+

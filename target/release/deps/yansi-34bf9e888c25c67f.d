@@ -1,0 +1,12 @@
+/Users/rahul703/Desktop/Rust-Projects/solana-twitter/target/release/deps/yansi-34bf9e888c25c67f.rmeta: /Users/rahul703/.cargo/registry/src/github.com-1ecc6299db9ec823/yansi-0.5.1/src/lib.rs /Users/rahul703/.cargo/registry/src/github.com-1ecc6299db9ec823/yansi-0.5.1/src/macros.rs /Users/rahul703/.cargo/registry/src/github.com-1ecc6299db9ec823/yansi-0.5.1/src/windows.rs /Users/rahul703/.cargo/registry/src/github.com-1ecc6299db9ec823/yansi-0.5.1/src/paint.rs /Users/rahul703/.cargo/registry/src/github.com-1ecc6299db9ec823/yansi-0.5.1/src/style.rs /Users/rahul703/.cargo/registry/src/github.com-1ecc6299db9ec823/yansi-0.5.1/src/color.rs
+
+/Users/rahul703/Desktop/Rust-Projects/solana-twitter/target/release/deps/libyansi-34bf9e888c25c67f.rlib: /Users/rahul703/.cargo/registry/src/github.com-1ecc6299db9ec823/yansi-0.5.1/src/lib.rs /Users/rahul703/.cargo/registry/src/github.com-1ecc6299db9ec823/yansi-0.5.1/src/macros.rs /Users/rahul703/.cargo/registry/src/github.com-1ecc6299db9ec823/yansi-0.5.1/src/windows.rs /Users/rahul703/.cargo/registry/src/github.com-1ecc6299db9ec823/yansi-0.5.1/src/paint.rs /Users/rahul703/.cargo/registry/src/github.com-1ecc6299db9ec823/yansi-0.5.1/src/style.rs /Users/rahul703/.cargo/registry/src/github.com-1ecc6299db9ec823/yansi-0.5.1/src/color.rs
+
+/Users/rahul703/Desktop/Rust-Projects/solana-twitter/target/release/deps/yansi-34bf9e888c25c67f.d: /Users/rahul703/.cargo/registry/src/github.com-1ecc6299db9ec823/yansi-0.5.1/src/lib.rs /Users/rahul703/.cargo/registry/src/github.com-1ecc6299db9ec823/yansi-0.5.1/src/macros.rs /Users/rahul703/.cargo/registry/src/github.com-1ecc6299db9ec823/yansi-0.5.1/src/windows.rs /Users/rahul703/.cargo/registry/src/github.com-1ecc6299db9ec823/yansi-0.5.1/src/paint.rs /Users/rahul703/.cargo/registry/src/github.com-1ecc6299db9ec823/yansi-0.5.1/src/style.rs /Users/rahul703/.cargo/registry/src/github.com-1ecc6299db9ec823/yansi-0.5.1/src/color.rs
+
+/Users/rahul703/.cargo/registry/src/github.com-1ecc6299db9ec823/yansi-0.5.1/src/lib.rs:
+/Users/rahul703/.cargo/registry/src/github.com-1ecc6299db9ec823/yansi-0.5.1/src/macros.rs:
+/Users/rahul703/.cargo/registry/src/github.com-1ecc6299db9ec823/yansi-0.5.1/src/windows.rs:
+/Users/rahul703/.cargo/registry/src/github.com-1ecc6299db9ec823/yansi-0.5.1/src/paint.rs:
+/Users/rahul703/.cargo/registry/src/github.com-1ecc6299db9ec823/yansi-0.5.1/src/style.rs:
+/Users/rahul703/.cargo/registry/src/github.com-1ecc6299db9ec823/yansi-0.5.1/src/color.rs:

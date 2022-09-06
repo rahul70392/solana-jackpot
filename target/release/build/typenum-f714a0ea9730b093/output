@@ -1,0 +1,2 @@
+cargo:rustc-env=TYPENUM_BUILD_CONSTS=/Users/rahul703/Desktop/Rust-Projects/solana-twitter/target/release/build/typenum-f714a0ea9730b093/out/consts.rs
+cargo:rustc-env=TYPENUM_BUILD_OP=/Users/rahul703/Desktop/Rust-Projects/solana-twitter/target/release/build/typenum-f714a0ea9730b093/out/op.rs

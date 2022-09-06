@@ -1,0 +1,1 @@
+/Users/rahul703/Desktop/Rust-Projects/solana-twitter/target/bpfel-unknown-unknown/release/libsolana_twitter.rlib: /Users/rahul703/Desktop/Rust-Projects/solana-twitter/programs/solana-twitter/src/lib.rs
